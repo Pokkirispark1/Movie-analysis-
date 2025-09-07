@@ -26,11 +26,23 @@ class MovieAnalysisBot:
             bot_token=info.BOT_TOKEN
         )
         
-        # MongoDB setup
-        self.mongo_client = MongoClient(info.MONGODB_URL)
-        self.db = self.mongo_client[info.DATABASE_NAME]
-        self.messages_collection = self.db.messages
-        self.chats_collection = self.db.chats
+        # MongoDB setup with error handling
+        try:
+            self.mongo_client = MongoClient(info.MONGODB_URL)
+            self.db = self.mongo_client[info.DATABASE_NAME]
+            self.messages_collection = self.db.messages
+            self.chats_collection = self.db.chats
+            
+            # Test MongoDB connection
+            self.mongo_client.admin.command('ping')
+            logger.info("MongoDB connection successful")
+        except Exception as e:
+            logger.error(f"MongoDB connection failed: {e}")
+            # Continue without MongoDB for testing
+            self.mongo_client = None
+            self.db = None
+            self.messages_collection = None
+            self.chats_collection = None
         
         # Scheduler
         self.scheduler = AsyncIOScheduler()
@@ -47,6 +59,7 @@ class MovieAnalysisBot:
     def setup_handlers(self):
         @self.app.on_message(filters.command("start"))
         async def start_command(client, message: Message):
+            logger.info(f"Start command received from user {message.from_user.id}")
             start_text = """
 🎬 **Hi! I'm a Movie Analysis Bot made by Cinema Terminal** 🎬
 
@@ -68,7 +81,11 @@ I monitor your groups and analyze movie requests to provide daily reports!
 
 **Contact:** @CinemaTerminal
             """
-            await message.reply_text(start_text)
+            try:
+                await message.reply_text(start_text)
+                logger.info(f"Start message sent successfully to user {message.from_user.id}")
+            except Exception as e:
+                logger.error(f"Error sending start message: {e}")
 
         @self.app.on_message(filters.command("addchat") & filters.user(info.ADMINS))
         async def add_chat(client, message: Message):
@@ -157,6 +174,15 @@ I monitor your groups and analyze movie requests to provide daily reports!
             await message.reply_text("📊 Generating report...")
             await self.generate_and_send_report()
 
+        @self.app.on_message(filters.command("test"))
+        async def test_command(client, message: Message):
+            logger.info(f"Test command received from user {message.from_user.id}")
+            try:
+                await message.reply_text("✅ Bot is working! Test successful!")
+                logger.info("Test response sent successfully")
+            except Exception as e:
+                logger.error(f"Error in test command: {e}")
+
         @self.app.on_message(filters.command("help"))
         async def help_command(client, message: Message):
             help_text = """
@@ -185,6 +211,8 @@ I monitor your groups and analyze movie requests to provide daily reports!
 
         @self.app.on_message(filters.text & ~filters.command(""))
         async def process_message(client, message: Message):
+            logger.info(f"Received message from chat {message.chat.id}: {message.text[:50]}...")
+            
             # Only process messages from monitored chats
             monitored_chat = self.chats_collection.find_one({
                 "chat_id": message.chat.id,
@@ -192,6 +220,7 @@ I monitor your groups and analyze movie requests to provide daily reports!
             })
             
             if not monitored_chat:
+                logger.info(f"Chat {message.chat.id} not monitored, skipping...")
                 return
             
             try:
@@ -371,8 +400,23 @@ I monitor your groups and analyze movie requests to provide daily reports!
     async def run(self):
         """Start the bot"""
         await self.app.start()
+        
+        # Clear any existing webhooks to ensure polling works
+        try:
+            await self.app.delete_webhook()
+            logger.info("Cleared existing webhooks")
+        except Exception as e:
+            logger.info(f"No webhooks to clear: {e}")
+        
         await self.start_scheduler()
         logger.info("Movie Analysis Bot started successfully!")
+        
+        # Send a test message to verify bot is working
+        try:
+            bot_info = await self.app.get_me()
+            logger.info(f"Bot started as: @{bot_info.username} ({bot_info.first_name})")
+        except Exception as e:
+            logger.error(f"Error getting bot info: {e}")
         
         # Keep the bot running
         await asyncio.Event().wait()
