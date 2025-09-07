@@ -1,24 +1,24 @@
 # Telegram API Configuration
-API_ID = 12345678  # Your API ID from my.telegram.org
-API_HASH = "your_api_hash_here"  # Your API Hash from my.telegram.org
-BOT_TOKEN = "your_bot_token_here"  # Bot token from @BotFather
+API_ID = 26592588  # Your API ID from my.telegram.org
+API_HASH = "4f78c40e672ad86e10384cc8a0b43dc7"  # Your API Hash from my.telegram.org
+BOT_TOKEN = "7341339052:AAE72GnRx-uGSxLueqDUKq2N0zQBo97Pu8M"  # Bot token from @BotFather
 
 # MongoDB Configuration
-MONGODB_URL = "mongodb://localhost:27017/"  # Your MongoDB connection URL
-DATABASE_NAME = "movie_analysis_bot"  # Database name
+MONGODB_URL = "mongodb+srv://analysisbot:analysisbot@cluster0.babcaob.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"  # Your MongoDB connection URL
+DATABASE_NAME = "Cluster0"  # Database name
 
 # Channel/Chat Configuration
-REPORT_CHANNEL_ID = -1001234567890  # Channel ID where daily reports will be sent
+REPORT_CHANNEL_ID = -1003025331112 # Channel ID where daily reports will be sent
 
 # Admin Configuration
 ADMINS = [
-    123456789,  # Replace with actual admin user IDs
-    987654321,  # Add more admin IDs as needed
+    1769132732,  # Replace with actual admin user IDs
+    560951157,  # Add more admin IDs as needed
 ]
 
 # Bot Settings
 BOT_NAME = "Movie Analysis Bot"
-BOT_USERNAME = "movieanalysisbot"  # Your bot username without @
+BOT_USERNAME = "newreqqccccbot"  # Your bot username without @
 
 # Logging Configuration
 LOG_LEVEL = "INFO"
