@@ -241,28 +241,40 @@ I monitor your groups and analyze movie requests to provide daily reports!
         if not has_indicators:
             return False, []
         
-        # Extract potential movie names (improved approach)
-        # Remove common words and extract remaining text as potential movie names
-        words = text.split()
-        filtered_words = [word for word in words if len(word) >= info.MIN_MOVIE_NAME_LENGTH and word.lower() not in [
-            'movie', 'film', 'series', 'show', 'season', 'watch', 'download', 
-            'need', 'want', 'looking', 'for', 'hindi', 'english', 'tamil', 
-            'telugu', 'malayalam', 'dubbed', 'subtitles', 'link', 'available',
-            'please', 'anyone', 'have', 'send', 'share', 'upload', 'the', 'and', 'any',
-            'with', 'please', 'bro', 'sir', 'guys', 'all', 'can', 'you', 'me'
-        ]]
+        # Split text by common separators to find multiple movie names
+        potential_movies = []
+        separators = [',', '&', 'and', 'also', '+', '|']
         
-        if filtered_words:
-            # Join words that might form movie names
-            movie_name = ' '.join(filtered_words).strip()
+        # First split by separators
+        text_parts = [text]
+        for sep in separators:
+            new_parts = []
+            for part in text_parts:
+                new_parts.extend(part.split(sep))
+            text_parts = new_parts
+        
+        # Process each part
+        for part in text_parts:
+            words = part.split()
+            filtered_words = [word for word in words if len(word) >= info.MIN_MOVIE_NAME_LENGTH and word.lower() not in [
+                'movie', 'film', 'series', 'show', 'season', 'watch', 'download', 
+                'need', 'want', 'looking', 'for', 'hindi', 'english', 'tamil', 
+                'telugu', 'malayalam', 'dubbed', 'subtitles', 'link', 'available',
+                'please', 'anyone', 'have', 'send', 'share', 'upload', 'the', 'and', 'any',
+                'with', 'please', 'bro', 'sir', 'guys', 'all', 'can', 'you', 'me'
+            ]]
             
-            # Apply minimum movie name length check to the complete movie name
-            if len(movie_name) >= info.MIN_MOVIE_NAME_LENGTH:
-                movie_names.append(movie_name)
+            if filtered_words:
+                # Join words that might form movie names
+                movie_name = ' '.join(filtered_words).strip()
                 
-                # Respect maximum movie requests per message
-                if len(movie_names) >= info.MAX_MOVIE_REQUESTS_PER_MESSAGE:
-                    break
+                # Apply minimum movie name length check to the complete movie name
+                if len(movie_name) >= info.MIN_MOVIE_NAME_LENGTH:
+                    movie_names.append(movie_name)
+                    
+                    # Respect maximum movie requests per message
+                    if len(movie_names) >= info.MAX_MOVIE_REQUESTS_PER_MESSAGE:
+                        break
         
         return len(movie_names) > 0, movie_names
 
