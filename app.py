@@ -57,9 +57,15 @@ class MovieAnalysisBot:
         self.setup_handlers()
         
     def setup_handlers(self):
+        # Add a catch-all handler to see if ANY message is received
+        @self.app.on_message()
+        async def catch_all_messages(client, message: Message):
+            logger.info(f"📨 Message received from chat {message.chat.id} ({message.chat.type}), user: {message.from_user.id if message.from_user else 'None'}")
+            logger.info(f"📝 Message text: {message.text[:100] if message.text else 'No text'}...")
+        
         @self.app.on_message(filters.command("start"))
         async def start_command(client, message: Message):
-            logger.info(f"Start command received from user {message.from_user.id}")
+            logger.info(f"⭐ Start command received from user {message.from_user.id}")
             start_text = """
 🎬 **Hi! I'm a Movie Analysis Bot made by Cinema Terminal** 🎬
 
@@ -71,6 +77,7 @@ I monitor your groups and analyze movie requests to provide daily reports!
 • `/stats` - View current statistics
 • `/report` - Generate instant report
 • `/help` - Show this help message
+• `/test` - Test if bot is working
 
 **Features:**
 ✅ Automatic daily reports at 6:00 AM
@@ -83,9 +90,9 @@ I monitor your groups and analyze movie requests to provide daily reports!
             """
             try:
                 await message.reply_text(start_text)
-                logger.info(f"Start message sent successfully to user {message.from_user.id}")
+                logger.info(f"✅ Start message sent successfully to user {message.from_user.id}")
             except Exception as e:
-                logger.error(f"Error sending start message: {e}")
+                logger.error(f"❌ Error sending start message: {e}")
 
         @self.app.on_message(filters.command("addchat") & filters.user(info.ADMINS))
         async def add_chat(client, message: Message):
@@ -176,21 +183,43 @@ I monitor your groups and analyze movie requests to provide daily reports!
 
         @self.app.on_message(filters.command("test"))
         async def test_command(client, message: Message):
-            logger.info(f"Test command received from user {message.from_user.id}")
+            logger.info(f"🧪 Test command received from user {message.from_user.id}")
             try:
-                await message.reply_text("✅ Bot is working! Test successful!")
-                logger.info("Test response sent successfully")
+                response = f"""
+✅ **Bot is working perfectly!**
+
+🤖 **Bot Info:**
+• Username: @{client.me.username if client.me else 'Unknown'}
+• Name: {client.me.first_name if client.me else 'Unknown'}
+
+📊 **System Status:**
+• MongoDB: {'✅ Connected' if self.mongo_client else '❌ Disconnected'}
+• Scheduler: ✅ Running
+• Handlers: ✅ Active
+
+🕐 **Current Time:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+**Test successful! 🎉**
+                """
+                await message.reply_text(response)
+                logger.info("✅ Test response sent successfully")
             except Exception as e:
-                logger.error(f"Error in test command: {e}")
+                logger.error(f"❌ Error in test command: {e}")
+                try:
+                    await message.reply_text(f"❌ Error occurred: {str(e)}")
+                except:
+                    pass
 
         @self.app.on_message(filters.command("help"))
         async def help_command(client, message: Message):
+            logger.info(f"📚 Help command received from user {message.from_user.id}")
             help_text = """
 🔧 **Movie Analysis Bot Help**
 
 **User Commands:**
 • `/start` - Start the bot
 • `/help` - Show this help
+• `/test` - Test bot functionality
 
 **Admin Commands:**
 • `/addchat -100xxxxxxx` - Add chat to monitoring
@@ -207,7 +236,20 @@ I monitor your groups and analyze movie requests to provide daily reports!
 
 **Made with ❤️ by Cinema Terminal**
             """
-            await message.reply_text(help_text)
+            try:
+                await message.reply_text(help_text)
+                logger.info("✅ Help message sent successfully")
+            except Exception as e:
+                logger.error(f"❌ Error sending help message: {e}")
+        
+        # Simple fallback for unknown commands
+        @self.app.on_message(filters.command("") & ~filters.regex(r"^/(start|help|test|addchat|removechat|stats|report)"))
+        async def unknown_command(client, message: Message):
+            logger.info(f"❓ Unknown command received: {message.text}")
+            try:
+                await message.reply_text("❓ Unknown command. Send /help to see available commands.")
+            except Exception as e:
+                logger.error(f"❌ Error in unknown command handler: {e}")
 
         @self.app.on_message(filters.text & ~filters.command(""))
         async def process_message(client, message: Message):
@@ -401,12 +443,8 @@ I monitor your groups and analyze movie requests to provide daily reports!
         """Start the bot"""
         await self.app.start()
         
-        # Clear any existing webhooks to ensure polling works
-        try:
-            await self.app.delete_webhook()
-            logger.info("Cleared existing webhooks")
-        except Exception as e:
-            logger.info(f"No webhooks to clear: {e}")
+        # Pyrogram uses polling by default, no need to clear webhooks
+        logger.info("Using polling mode (default for Pyrogram)")
         
         await self.start_scheduler()
         logger.info("Movie Analysis Bot started successfully!")
